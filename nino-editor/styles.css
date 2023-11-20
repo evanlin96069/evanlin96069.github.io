@@ -1,0 +1,77 @@
+body {
+	margin: 0;
+	counter-reset: line-no;
+	background-color: #1e1e1e;
+}
+
+.editor-tab {
+	background-color: #252525;
+	position: fixed;
+	top: 0;
+}
+
+.editor-tab1 {
+	background-color: #575068;
+	color: #e5e5e5;
+}
+
+.editor-tab2 {
+	background-color: #252525;
+	color: #e5e5e5;
+	float: right;
+}
+
+.editor-text {
+	color: #e5e5e5;
+}
+
+.editor-status {
+	background-color: #575068;
+	position: fixed;
+	bottom: 0;
+}
+
+.editor-status1 {
+	background-color: #a96b21;
+	color: #e1dbef;
+	float: right;
+}
+
+.editor-status2 {
+	background-color: #d98a2b;
+	color: #e1dbef;
+	float: right;
+}
+
+pre {
+	margin: 0;
+	white-space: pre-wrap;
+	font-family: monospace;
+	font-size: 14pt;
+}
+
+pre>span {
+	display: inline-block;
+	white-space: nowrap;
+	width: 100%;
+}
+
+pre>span>a::before {
+	counter-increment: line-no;
+	content: counter(line-no);
+	padding-right: 0.5em;
+	width: 2.25em;
+	display: inline-block;
+	text-align: right;
+	background-color: #1e1e1e;
+	color: #7f7f7f;
+}
+
+pre>span:target {
+	background-color: #282828;
+}
+
+pre>span:target>a::before {
+	background-color: #7f7f7f;
+	color: #1e1e1e;
+}
