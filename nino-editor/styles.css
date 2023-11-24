@@ -29,6 +29,7 @@ body {
 	background-color: #575068;
 	position: fixed;
 	bottom: 0;
+	width: 100%;
 }
 
 .editor-status1 {
