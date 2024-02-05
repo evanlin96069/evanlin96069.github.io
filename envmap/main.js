@@ -1,4 +1,8 @@
-let images = {};
+const sides = ['up', 'front', 'left', 'back', 'right', 'down'];
+const images = {};
+sides.forEach(side => {
+    images[side] = null;
+});
 
 function uploadImage(side) {
     const input = document.createElement('input');
@@ -12,35 +16,76 @@ function uploadImage(side) {
 
 function handleFileUpload(side) {
     return (e) => {
-        const file = e.target.files[0];
-        handleImage(side, file);
+        const files = e.target.files;
+        handleFiles(side, files);
     };
 }
 
-function handleImage(side, file) {
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const img = document.getElementById(side);
-            img.style.backgroundImage = `url(${event.target.result})`;
-            images[side] = event.target.result;
-        };
-        reader.readAsDataURL(file);
+function handleDrop(side, event) {
+    event.preventDefault();
+    const files = event.dataTransfer.files;
+
+    if (files.length > 0) {
+        handleFiles(side, files);
+    } else {
+        // If no files, consider it as a drag to swap
+        handleSwap(side, event);
     }
+}
+
+function handleFiles(side, files) {
+    if (files.length === 0) {
+        alert('Please drop an image file.');
+        return;
+    }
+
+    const file = files[0];
+
+    if (!file.type.startsWith('image/')) {
+        alert('Please drop a valid image file.');
+        return;
+    }
+
+    handleImage(side, file);
+}
+
+function handleImage(side, file) {
+    if (!sides.includes(side)) {
+        return;
+    }
+
+    const img = document.getElementById(side);
+    img.style.backgroundImage = `url(${URL.createObjectURL(file)})`;
+    images[side] = URL.createObjectURL(file);
+}
+
+function handleSwap(targetSide, event) {
+    const sourceSide = event.dataTransfer.getData('text/plain');
+
+    if (!sides.includes(sourceSide) || !sides.includes(targetSide)) {
+        return;
+    }
+
+    // Swap the images between source and target sides
+    const tempImage = images[targetSide];
+    images[targetSide] = images[sourceSide];
+    images[sourceSide] = tempImage;
+
+    const sourceElement = document.getElementById(sourceSide);
+    const targetElement = document.getElementById(targetSide);
+
+    sourceElement.style.backgroundImage = images[sourceSide] ? `url(${images[sourceSide]})` : 'none';
+    targetElement.style.backgroundImage = images[targetSide] ? `url(${images[targetSide]})` : 'none';
+
 }
 
 function allowDrop(event) {
     event.preventDefault();
 }
 
-function handleDrop(side, event) {
-    event.preventDefault();
-    const file = event.dataTransfer.files[0];
-    handleImage(side, file);
-}
 
 function generateEnvmap() {
-    if (Object.keys(images).length !== 6) {
+    if (!Object.values(images).every(value => value !== null)) {
         alert('Please upload images for all sides.');
         return;
     }
@@ -142,9 +187,11 @@ function generateEnvmap() {
     });
 }
 
-// Add event listeners for drag-and-drop
-document.addEventListener('dragover', allowDrop);
-document.addEventListener('drop', (e) => {
-    const side = e.target.id;
-    handleDrop(side, e);
-});
+for (const side of sides) {
+    const element = document.getElementById(side);
+
+    element.draggable = true;
+    element.ondrop = (e) => handleDrop(side, e);
+    element.ondragstart = (e) => e.dataTransfer.setData('text/plain', e.target.id);
+    element.ondragover = allowDrop;
+}
