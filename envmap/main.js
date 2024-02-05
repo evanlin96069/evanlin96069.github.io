@@ -45,85 +45,100 @@ function generateEnvmap() {
         return;
     }
 
-    const downloadLink = document.createElement('a');
+    const zip = new JSZip();
+    const imagePromises = [];
 
     Object.keys(images).forEach((side, index) => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const img = new Image();
 
-        img.onload = () => {
-            canvas.width = img.height;
-            canvas.height = img.width;
+        const imagePromise = new Promise((resolve) => {
+            img.onload = () => {
+                canvas.width = img.height;
+                canvas.height = img.width;
 
-            let image_index = 0;
+                let image_index = 0;
 
 
-            switch (side) {
-                case 'right':
-                    image_index = 0;
-                    // Flip the image horizontally​
-                    ctx.translate(canvas.width, 0);
-                    ctx.scale(-1, 1);
-                    // Rotate the image 90° counter-clockwise​
-                    ctx.translate(canvas.width / 2, canvas.height / 2);
-                    ctx.rotate((90 * Math.PI) / 180);
-                    ctx.translate(-canvas.width / 2, -canvas.height / 2);
-                    break;
-                case 'left':
-                    image_index = 1;
-                    // Flip the image horizontally​
-                    ctx.translate(canvas.width, 0);
-                    ctx.scale(-1, 1);
-                    // Rotate the image 90° clockwise​
-                    ctx.translate(canvas.width / 2, canvas.height / 2);
-                    ctx.rotate((-90 * Math.PI) / 180);
-                    ctx.translate(-canvas.width / 2, -canvas.height / 2);
-                    break;
-                case 'back':
-                    image_index = 2;
-                    // Flip the image vertically​
-                    ctx.translate(0, canvas.height);
-                    ctx.scale(1, -1);
-                    break;
-                case 'front':
-                    image_index = 3;
-                    // Flip the image horizontally​
-                    ctx.translate(canvas.width, 0);
-                    ctx.scale(-1, 1);
-                    break;
-                case 'up':
-                    image_index = 4;
-                    // Flip the image horizontally​
-                    ctx.translate(canvas.width, 0);
-                    ctx.scale(-1, 1);
-                    // Rotate the image 90° counter-clockwise​
-                    ctx.translate(canvas.width / 2, canvas.height / 2);
-                    ctx.rotate((90 * Math.PI) / 180);
-                    ctx.translate(-canvas.width / 2, -canvas.height / 2);
-                    break;
-                case 'down':
-                    image_index = 5;
-                    // Flip the image horizontally​
-                    ctx.translate(canvas.width, 0);
-                    ctx.scale(-1, 1);
-                    // Rotate the image 90° counter-clockwise​
-                    ctx.translate(canvas.width / 2, canvas.height / 2);
-                    ctx.rotate((90 * Math.PI) / 180);
-                    ctx.translate(-canvas.width / 2, -canvas.height / 2);
-                    break;
-                default:
-                    break;
-            }
+                switch (side) {
+                    case 'right':
+                        image_index = 0;
+                        // Flip the image horizontally​
+                        ctx.translate(canvas.width, 0);
+                        ctx.scale(-1, 1);
+                        // Rotate the image 90° counter-clockwise​
+                        ctx.translate(canvas.width / 2, canvas.height / 2);
+                        ctx.rotate((90 * Math.PI) / 180);
+                        ctx.translate(-canvas.width / 2, -canvas.height / 2);
+                        break;
+                    case 'left':
+                        image_index = 1;
+                        // Flip the image horizontally​
+                        ctx.translate(canvas.width, 0);
+                        ctx.scale(-1, 1);
+                        // Rotate the image 90° clockwise​
+                        ctx.translate(canvas.width / 2, canvas.height / 2);
+                        ctx.rotate((-90 * Math.PI) / 180);
+                        ctx.translate(-canvas.width / 2, -canvas.height / 2);
+                        break;
+                    case 'back':
+                        image_index = 2;
+                        // Flip the image vertically​
+                        ctx.translate(0, canvas.height);
+                        ctx.scale(1, -1);
+                        break;
+                    case 'front':
+                        image_index = 3;
+                        // Flip the image horizontally​
+                        ctx.translate(canvas.width, 0);
+                        ctx.scale(-1, 1);
+                        break;
+                    case 'up':
+                        image_index = 4;
+                        // Flip the image horizontally​
+                        ctx.translate(canvas.width, 0);
+                        ctx.scale(-1, 1);
+                        // Rotate the image 90° counter-clockwise​
+                        ctx.translate(canvas.width / 2, canvas.height / 2);
+                        ctx.rotate((90 * Math.PI) / 180);
+                        ctx.translate(-canvas.width / 2, -canvas.height / 2);
+                        break;
+                    case 'down':
+                        image_index = 5;
+                        // Flip the image horizontally​
+                        ctx.translate(canvas.width, 0);
+                        ctx.scale(-1, 1);
+                        // Rotate the image 90° counter-clockwise​
+                        ctx.translate(canvas.width / 2, canvas.height / 2);
+                        ctx.rotate((90 * Math.PI) / 180);
+                        ctx.translate(-canvas.width / 2, -canvas.height / 2);
+                        break;
+                    default:
+                        break;
+                }
 
-            ctx.drawImage(img, 0, 0);
+                ctx.drawImage(img, 0, 0);
 
-            downloadLink.href = canvas.toDataURL('image/png');
-            downloadLink.download = `cubemap_${image_index}.png`;
-            downloadLink.click();
-        };
+                const imageDataUrl = canvas.toDataURL('image/png');
+                zip.file(`envmap_${image_index}.png`, imageDataUrl.split('base64,')[1], { base64: true });
+                resolve();
+            };
+        });
 
         img.src = images[side];
+        imagePromises.push(imagePromise);
+    });
+
+    Promise.all(imagePromises).then(() => {
+        zip.generateAsync({ type: 'blob' })
+            .then((content) => {
+                // Create a download link for the zip file
+                const downloadLink = document.createElement('a');
+                downloadLink.href = URL.createObjectURL(content);
+                downloadLink.download = 'envmap.zip';
+                downloadLink.click();
+            });
     });
 }
 
