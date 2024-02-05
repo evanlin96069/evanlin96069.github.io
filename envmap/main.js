@@ -1,5 +1,3 @@
-// main.js
-
 let images = {};
 
 function uploadImage(side) {
@@ -7,23 +5,41 @@ function uploadImage(side) {
     input.type = 'file';
     input.accept = 'image/*';
 
-    input.onchange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const img = document.getElementById(side);
-                img.style.backgroundImage = `url(${event.target.result})`;
-                images[side] = event.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-    };
+    input.onchange = handleFileUpload(side);
 
     input.click();
 }
 
-function generateCubemap() {
+function handleFileUpload(side) {
+    return (e) => {
+        const file = e.target.files[0];
+        handleImage(side, file);
+    };
+}
+
+function handleImage(side, file) {
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = document.getElementById(side);
+            img.style.backgroundImage = `url(${event.target.result})`;
+            images[side] = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function allowDrop(event) {
+    event.preventDefault();
+}
+
+function handleDrop(side, event) {
+    event.preventDefault();
+    const file = event.dataTransfer.files[0];
+    handleImage(side, file);
+}
+
+function generateEnvmap() {
     if (Object.keys(images).length !== 6) {
         alert('Please upload images for all sides.');
         return;
@@ -110,3 +126,10 @@ function generateCubemap() {
         img.src = images[side];
     });
 }
+
+// Add event listeners for drag-and-drop
+document.addEventListener('dragover', allowDrop);
+document.addEventListener('drop', (e) => {
+    const side = e.target.id;
+    handleDrop(side, e);
+});

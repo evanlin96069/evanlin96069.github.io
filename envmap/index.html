@@ -1,10 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Custom Envmap Generator</title>
     <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        #container {
+            text-align: center;
+        }
+
         .square {
             width: 100px;
             height: 100px;
@@ -14,39 +28,75 @@
             background-size: cover;
             background-position: center;
         }
+
         .empty_square {
             width: 100px;
             height: 100px;
             border: 1px solid #ddd;
             display: inline-block;
         }
+        
+        #instructions {
+            font-size: 14px;
+            margin-top: 10px;
+            color: #333;
+        }
     </style>
 </head>
-<body>
-    <h1>Custom Envmap Generator</h1>
-    <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3002685650">[Tutorial] Custom Envmaps</a><br>
-    Click each square to select the image.<br>
-    Click generate to download images with the correct orientation. <br>
-    Import images to VTFEdit following the index order.<br><br>
-    <div id="cubemap">
-        <div class="empty_square"></div>
-        <div class="square" id="up" onclick="uploadImage('up')"></div>
-        <div class="empty_square"></div>
-        <div class="empty_square"></div>
-        <br>
-        <div class="square" id="back" onclick="uploadImage('back')"></div>
-        <div class="square" id="right" onclick="uploadImage('right')"></div>
-        <div class="square" id="front" onclick="uploadImage('front')"></div>
-        <div class="square" id="left" onclick="uploadImage('left')"></div>
-        <br>
-        <div class="empty_square"></div>
-        <div class="square" id="down" onclick="uploadImage('down')"></div>
-        <div class="empty_square"></div>
-        <div class="empty_square"></div>
-    </div>
-    <br>
-    <button onclick="generateCubemap()">Generate</button>
 
+<body>
+    <div id="container">
+        <h1>Custom Envmap Generator</h1>
+        <div id="instructions">
+            <p><a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3002685650">[Tutorial] Custom Envmaps</a><br></p>
+            <p>Convert cube map images to the correct orientation for Source Engine envmap.</p>
+            <p>Import images to VTFEdit following the index order.</p>
+        </div>
+        
+        <div id="cubemap">
+            <div class="empty_square"></div>
+            <div class="square" id="up" onclick="uploadImage('up')"></div>
+            <div class="empty_square"></div>
+            <div class="empty_square"></div>
+            <br>
+            <div class="square" id="back" onclick="uploadImage('back')"></div>
+            <div class="square" id="right" onclick="uploadImage('right')"></div>
+            <div class="square" id="front" onclick="uploadImage('front')"></div>
+            <div class="square" id="left" onclick="uploadImage('left')"></div>
+            <br>
+            <div class="empty_square"></div>
+            <div class="square" id="down" onclick="uploadImage('down')"></div>
+            <div class="empty_square"></div>
+            <div class="empty_square"></div>
+        </div>
+        <br>
+        <button onclick="generateEnvmap()">Generate</button>
+        <div id="instructions">
+            <p>Click on the squares or drag-and-drop images to upload them.</p>
+        </div>
+    </div>
+    
     <script src="main.js"></script>
+    <script>
+        // Add ondrop and ondragover attributes for each square
+        document.getElementById('up').ondrop = (e) => handleDrop('up', e);
+        document.getElementById('up').ondragover = allowDrop;
+
+        document.getElementById('front').ondrop = (e) => handleDrop('front', e);
+        document.getElementById('front').ondragover = allowDrop;
+
+        document.getElementById('left').ondrop = (e) => handleDrop('left', e);
+        document.getElementById('left').ondragover = allowDrop;
+
+        document.getElementById('back').ondrop = (e) => handleDrop('back', e);
+        document.getElementById('back').ondragover = allowDrop;
+
+        document.getElementById('right').ondrop = (e) => handleDrop('right', e);
+        document.getElementById('right').ondragover = allowDrop;
+
+        document.getElementById('down').ondrop = (e) => handleDrop('down', e);
+        document.getElementById('down').ondragover = allowDrop;
+    </script>
 </body>
+
 </html>
