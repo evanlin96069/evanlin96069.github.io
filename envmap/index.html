@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Envmap Generator</title>
+    <style>
+        .square {
+            width: 100px;
+            height: 100px;
+            border: 1px solid #000;
+            display: inline-block;
+            cursor: pointer;
+            background-size: cover;
+            background-position: center;
+        }
+        .empty_square {
+            width: 100px;
+            height: 100px;
+            border: 1px solid #ddd;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Custom Envmap Generator</h1>
+    <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3002685650">[Tutorial] Custom Envmaps</a><br>
+    Click each square to select the image.<br>
+    Click generate to download images with the correct orientation. <br>
+    Import images to VTFEdit following the index order.<br><br>
+    <div id="cubemap">
+        <div class="empty_square"></div>
+        <div class="square" id="up" onclick="uploadImage('up')"></div>
+        <div class="empty_square"></div>
+        <div class="empty_square"></div>
+        <br>
+        <div class="square" id="back" onclick="uploadImage('back')"></div>
+        <div class="square" id="right" onclick="uploadImage('right')"></div>
+        <div class="square" id="front" onclick="uploadImage('front')"></div>
+        <div class="square" id="left" onclick="uploadImage('left')"></div>
+        <br>
+        <div class="empty_square"></div>
+        <div class="square" id="down" onclick="uploadImage('down')"></div>
+        <div class="empty_square"></div>
+        <div class="empty_square"></div>
+    </div>
+    <br>
+    <button onclick="generateCubemap()">Generate</button>
+
+    <script src="main.js"></script>
+</body>
+</html>
