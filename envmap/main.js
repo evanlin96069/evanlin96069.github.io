@@ -1,4 +1,4 @@
-const sides = ['up', 'front', 'left', 'back', 'right', 'down'];
+const sides = ['right', 'left', 'back', 'front', 'up', 'down'];
 const images = {};
 sides.forEach(side => {
     images[side] = null;
@@ -8,6 +8,7 @@ function uploadImage(side) {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
+    input.multiple = true;
 
     input.onchange = handleFileUpload(side);
 
@@ -39,14 +40,30 @@ function handleFiles(side, files) {
         return;
     }
 
-    const file = files[0];
+    if (files.length === 1) {
+        const file = files[0];
+        if (!file.type.startsWith('image/')) {
+            alert('Please drop a valid image file.');
+            return;
+        }
+        handleImage(side, file);
+    } else if (files.length === 6) {
+        // If the user drops six files, apply them to all squares
+        const validFiles = Array.from(files).every(file => file.type.startsWith('image/'));
+        if (!validFiles) {
+            alert('Please drop valid image files.');
+            return;
+        }
 
-    if (!file.type.startsWith('image/')) {
-        alert('Please drop a valid image file.');
-        return;
+        for (let i = 0; i < 6; i++) {
+            const file = files[i];
+            const currentSide = sides[i];
+
+            handleImage(currentSide, file);
+        }
+    } else {
+        alert("Please drop either one or six image files.")
     }
-
-    handleImage(side, file);
 }
 
 function handleImage(side, file) {
