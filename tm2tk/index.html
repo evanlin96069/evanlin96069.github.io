@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tick Time Validator</title>
+    <script>
+        function validateTime() {
+            var tickTime = parseFloat(document.getElementById("tickTime").value);
+            var inputTimeStr = document.getElementById("inputTime").value;
+
+            // Parse the input time
+            var totalTimeInSeconds = parseTimeToSeconds(inputTimeStr);
+
+            if (isNaN(totalTimeInSeconds)) {
+                document.getElementById("result").innerHTML = "Invalid time format.";
+                return;
+            }
+
+            var numTicks = totalTimeInSeconds / tickTime;
+            var roundedTicks = Math.round(numTicks);
+            var tickDifference = Math.abs(numTicks - roundedTicks);
+
+            if (tickDifference < 1e-6) {
+                // The time corresponds to a valid integer number of ticks
+                document.getElementById("result").innerHTML = "Valid time.<br/>Number of ticks: " + roundedTicks;
+            } else {
+                // The time does not correspond to an integer number of ticks
+                var closestTime = roundedTicks * tickTime;
+                var formattedClosestTime = formatSeconds(closestTime);
+                document.getElementById("result").innerHTML = "Invalid time.<br/>Closest valid time is " + formattedClosestTime + " (" + roundedTicks + " ticks)";
+            }
+        }
+
+        function parseTimeToSeconds(timeStr) {
+            // Handles time formats like mm:ss.mmm or ss.mmm
+            var parts = timeStr.split(':');
+
+            if (parts.length == 1) {
+                // Format: ss.mmm
+                return parseFloat(parts[0]);
+            } else if (parts.length == 2) {
+                // Format: mm:ss.mmm
+                var minutes = parseInt(parts[0], 10);
+                var seconds = parseFloat(parts[1]);
+                return minutes * 60 + seconds;
+            } else {
+                return NaN;
+            }
+        }
+
+        function formatSeconds(seconds) {
+            var minutes = Math.floor(seconds / 60);
+            var secs = (seconds % 60).toFixed(3);
+            if (seconds % 60 < 10) {
+                secs = '0' + secs;
+            }
+            return minutes + ":" + secs;
+        }
+    </script>
+</head>
+<body>
+    <h1>Tick Time Validator</h1>
+    <p>
+        Tick Interval (s): <input type="text" id="tickTime" value="0.015" /><br/><br/>
+        Time (mm:ss.mmm or ss.mmm): <input type="text" id="inputTime"/><br/><br/>
+        <button onclick="validateTime()">Validate Time</button>
+    </p>
+    <div id="result"></div>
+</body>
+</html>
