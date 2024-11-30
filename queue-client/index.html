@@ -142,7 +142,7 @@
     const CAT_FREE = ["links", "miscellaneous", "players", "rules", "type", "weblink"];
     const PLAYER_FREE = ["assets", "hitbox", "links", "pronouns", "signup", "speedrunslive", "supporterAnimation", "twitch", "twitter",
       "weblink", "youtube"];
-    const RUN_FREE = ["comment", "links", "splits", "status", "system"];
+    const RUN_FREE = ["links", "splits", "status", "system"];
 
     function free(run) {
       for (let prop of CAT_FREE)
@@ -489,13 +489,25 @@
       }
       title += "</b>";
       let output = "";
+
+      const url_regex = /[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi;
+
       for (let i of working_queue) {
         let run = queue[i];
-        output += `<tr><td style="text-align:center">${full_category(run)}</td><td></td>` +
-          `<td style="text-align:center">${players(run)}</td><td></td>` +
-          `<td style="text-align:center">${format_time(run, tick_interval)}</td><td></td>` +
-          `<td style="text-align:center">${submitted_date(run)}</td><td></td>` +
-          `<td style="text-align:center"><a href="${run.weblink.replace("http://", "https://")}" target="_blank" class="external">Open</a></td><td></td>`;
+        let has_proof = (run.videos !== null) || (run.comment !== null && run.comment.search(url_regex));
+        let open_text = "Open";
+        let open_hover = "";
+        output += `<tr>`
+        output += `<td style="text-align:center">${full_category(run)}</td><td></td>`;
+        output += `<td style="text-align:center">${players(run)}</td><td></td>`;
+        output += `<td style="text-align:center">${format_time(run, tick_interval)}</td><td></td>`;
+        output += `<td style="text-align:center">${submitted_date(run)}</td><td></td>`;
+        output += `<td style="text-align:center">`;
+        if (!has_proof) {
+          output += `<span title="This run might not have any proof.">⚠️</span>`;
+        }
+        output += `<a href="${run.weblink.replace("http://", "https://")}" target="_blank" class="external">Open</a>`;
+        output += `</td><td></td>`;
       }
       document.getElementById("game-title").innerHTML = title;
       document.getElementById("queue-table").innerHTML = output;
