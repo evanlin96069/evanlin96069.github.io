@@ -402,26 +402,50 @@
         return `0.${milliseconds.padStart(3, "0")}`;
     }
 
-    function validate_time(time, tick_interval) {
-      let milli = Math.round(time * 1000);
-      return (milli % (tick_interval * 1000)).toFixed(3) == 0;
+    function validate_time(seconds, tick_interval) {
+      var num_ticks = seconds / tick_interval;
+      var rounded_ticks = Math.round(num_ticks);
+      var tick_diff = Math.abs(num_ticks - rounded_ticks);
+
+      return tick_diff < 1e-6;
     }
 
     function format_time(run, tick_interval) {
-      let times = run.times;
-      let is_igt = (times.primary_t === times.realtime_noloads_t || times.primary_t === times.ingame_t);
-      let is_valid = is_igt ? validate_time(times.primary_t, tick_interval) : true;
-      let format = str_time(run.times.primary_t);
-      if (!is_valid) {
-        format = `<font color="red">` + format + `</font>`;
+      let time_format = str_time(run.times.primary_t);
+
+      let seconds = run.times.primary_t;
+      let num_ticks = seconds / tick_interval;
+      let rounded_ticks = Math.round(num_ticks);
+      let tick_diff = Math.abs(num_ticks - rounded_ticks);
+
+      if (tick_diff < 1e-6) {
+        return `
+          <div title="Valid time. Ticks: ${rounded_ticks}">
+            ${time_format}
+          </div>
+        `;
       }
-      return format;
+
+      let closest_time = rounded_ticks * tick_interval;
+      let formatted_closest_time = str_time(closest_time);
+      return `
+        <div title="Invalid time. Closest valid time: ${formatted_closest_time} (${rounded_ticks} ticks)">
+          <font color="red">
+            ${time_format}
+          </font>
+        </div>
+      `;
     }
 
     function submitted_date(run) {
-      return run.submitted
+      let format_time = run.submitted
         ? new Date(run.submitted).toISOString().split('T')[0]
         : "N/A";
+      return `
+        <div title="${run.submitted}">
+          ${format_time}
+        </div>
+      `;
     }
 
     function edit_working_queue() {
@@ -600,7 +624,8 @@
   <div id="header" style="text-align:center">
     <span class="xlight light"><button class="link" onclick="dark()">Dark Mode</button></span>
     <span class="xdark light"><button class="link" onclick="light()">Light Mode</button></span> &bull;
-    <a href="https://github.com/evanlin96069/evanlin96069.github.io/tree/main/queue-client" target="_blank" class="external">GitHub</a>
+    <a href="https://github.com/evanlin96069/evanlin96069.github.io/tree/main/queue-client" target="_blank"
+      class="external">GitHub</a>
   </div>
   <div id="prompt" style="text-align:center">
     <p>Enter the abbreviation for the game you wish to fetch the queue of:</p>
