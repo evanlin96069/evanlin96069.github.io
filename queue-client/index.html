@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>QueueClient</title>
+  <style>
+    body.light {
+      background: white;
+      color: black
+    }
+
+    body.dark {
+      background: #222;
+      color: #e6e6e6
+    }
+
+    button.dark,
+    input.dark,
+    select.dark {
+      background: #3b3b3b;
+      color: #e6e6e6
+    }
+
+    button.dark,
+    input.dark {
+      border-width: 1px
+    }
+
+    .xlight.dark,
+    .xdark.light {
+      display: none
+    }
+
+    a:link {
+      color: #08e
+    }
+
+    a:visited {
+      color: #af69ef
+    }
+
+    .external:after {
+      content: url(https://upload.wikimedia.org/wikipedia/commons/4/44/Icon_External_Link.svg);
+      margin: 0 0 0 3px
+    }
+
+    button.link {
+      background: none !important;
+      border: none !important;
+      padding: 0 !important;
+      font-family: sans-serif;
+      font-size: medium;
+      color: #08e !important;
+      text-decoration: underline;
+      cursor: pointer
+    }
+  </style>
+  <script type="text/javascript">
+    mode = "light";
+
+    function light() {
+      let elements = [];
+      for (let x of document.getElementsByClassName("dark"))
+        elements.push(x);
+      for (let x of elements) {
+        x.classList.remove("dark");
+        x.classList.add("light");
+      }
+      mode = "light";
+    }
+
+    function dark() {
+      let elements = [];
+      for (let x of document.getElementsByClassName("light"))
+        elements.push(x);
+      for (let x of elements) {
+        x.classList.remove("light");
+        x.classList.add("dark");
+      }
+      mode = "dark";
+    }
+
+    const HEADER = "https://www.speedrun.com/api/v1/";
+
+    async function json_from_url_await(url) {
+      let resp = await fetch(url);
+      if (resp.ok)
+        return resp.json();
+      else
+        throw resp.status;
+    }
+
+    async function json_from_src_await(short_url) {
+      return await json_from_url_await(HEADER + short_url);
+    }
+
+    async function continual_data_await_fast_reverse(short_url, limit) {
+      if (limit % 200)
+        throw "Limit must be a multiple of 200";
+      if (limit > 10000)
+        throw "Limit must be no greater than 10000";
+
+      let hold = [];
+      let holdD = {};
+      let asc_hi;
+      let desc_lo;
+
+      async function next_await_fast_reverse(start, reverse) {
+        let promises = [];
+        let dir = reverse ? "desc" : "asc";
+        for (let i = 0; i < limit; i += 200) {
+          promises.push(json_from_src_await(
+            short_url + (short_url.includes("?") ? "&" : "?") + `orderby=submitted&direction=${await dir}&max=200` +
+            `&offset=${start * limit + i}`
+          ).then(function (json) {
+            hold.push(...json.data.map(free));
+            if (i == limit - 200 && json.data.length > 0) {
+              if (reverse) { desc_lo = json.data[json.data.length - 1].submitted; }
+              else { asc_hi = json.data[json.data.length - 1].submitted; }
+            }
+          }));
+        }
+        await Promise.all(promises);
+        if ((asc_hi === undefined || desc_lo === undefined || asc_hi <= desc_lo) && hold.length == (start + 1) * limit + 10000 * reverse) {
+          if (hold.length == 10000 && !reverse)
+            await next_await_fast_reverse(0, true);
+          else if (hold.length == 20000)
+            throw -1;
+          else
+            await next_await_fast_reverse(start + 1, reverse);
+        }
+      }
+
+      return await next_await_fast_reverse(0, false).then(function () {
+        for (let run of hold)
+          if (!(run.id in holdD)) { holdD[run.id] = run; }
+        return Object.values(holdD);
+      });
+    }
+
+    const CAT_FREE = ["links", "miscellaneous", "players", "rules", "type", "weblink"];
+    const PLAYER_FREE = ["assets", "hitbox", "links", "pronouns", "signup", "speedrunslive", "supporterAnimation", "twitch", "twitter",
+      "weblink", "youtube"];
+    const RUN_FREE = ["comment", "links", "splits", "status", "system"];
+
+    function free(run) {
+      for (let prop of CAT_FREE)
+        delete run.category.data[prop];
+      if (run.level.data.length !== 0) {
+        for (let prop of CAT_FREE)
+          delete run.level.data[prop];
+      }
+      for (let player of run.players.data) {
+        for (let prop of PLAYER_FREE)
+          delete player[prop];
+      }
+      for (let prop of RUN_FREE)
+        delete run[prop];
+      return run;
+    }
+
+    function player_vid_hash(run) {
+      let rplayers = run.players.data.map(p => (p.rel == "user") ? p.names.international : p.name);
+      rplayers.sort();
+      let h = "$" + rplayers.join("|") + "$";
+      if (run.videos === null)
+        h += "NULL$";
+      else {
+        if ("text" in run.videos)
+          h += run.videos.text + "$";
+        if ("links" in run.videos) {
+          let rvideos = run.videos.links.map(x => x.uri);
+          rvideos.sort();
+          h += rvideos.join("|") + "$";
+        }
+      }
+      return h;
+    }
+
+    function disp_error(msg) {
+      document.getElementById("category-error").innerHTML = msg;
+      document.getElementById("game-title").innerHTML = "";
+      document.getElementById("queue-table").innerHTML = "";
+    }
+
+    async function get_queue() {
+      let abbr = document.getElementById("abbreviation").value;
+      try {
+        var gameObj = await json_from_src_await(`games/${abbr}`);
+      }
+      catch (code) {
+        let errorMsg;
+        if (code == 404) {
+          errorMsg = `Invalid game: ${escape(abbr)}`;
+        } else if (code >= 400) {
+          errorMsg = `Speedrun.com server error (${code})`;
+        } else {
+          errorMsg = "Unknown error";
+        }
+        disp_error(errorMsg);
+        return;
+      }
+      gameID = gameObj.data.id;
+      gameName = gameObj.data.names.international;
+      try {
+        queue = await continual_data_await_fast_reverse(`runs?game=${await gameID}&status=new&embed=category,level,players`, 5000);
+      }
+      catch (code) {
+        let errorMsg;
+        if (code >= 400) {
+          errorMsg = `Speedrun.com server error (${code})`;
+        } else if (code == -1) {
+          errorMsg = `Queue for ${gameName} has more than 20000 runs. Could not fetch the entire queue.`;
+        } else {
+          errorMsg = "Unknown error";
+        }
+        disp_error(errorMsg);
+        return;
+      }
+
+      working_queue = queue;
+      try {
+        var varObj = await json_from_src_await(`games/${gameID}/variables`);
+      }
+      catch (code) {
+        let errorMsg;
+        if (code >= 400) {
+          errorMsg = `Speedrun.com server error (${code})`;
+        } else {
+          errorMsg = "Unknown error";
+        }
+        disp_error(errorMsg);
+        return;
+      }
+      var_map = {};
+      subcat_map = {};
+      for (let variable of varObj.data) {
+        var_map[variable.id] = variable.name;
+        for (let value in variable.values.values) {
+          var_map[value] = variable.values.values[value].label;
+          if (variable["is-subcategory"])
+            subcat_map[value] = variable.values.values[value].label;
+        }
+      }
+
+      // Tick input
+      let tick_elements = `
+        <div class="${mode}">
+          <select name="tick-option" id="tick-option" class="${mode}">
+            <option value="tickinterval" selected>Tick Interval</option>
+            <option value="tickrate">Tickrate</option>
+          </select>
+          <input type="number" name="tick-input" id="tick-input" class="${mode}" value="0.015" min="0.00001" step="0.001"" />
+        </div>
+      `;
+
+      // Select category
+      let all_cats = [];
+      for (let run of queue) {
+        let full_cat = full_category(run);
+        if (!all_cats.includes(full_cat))
+          all_cats.push(full_cat);
+      }
+      all_cats.sort((a, b) => ((a > b) - 0.5));
+      all_cats.unshift("Individual Levels");
+      all_cats.unshift("Full Game");
+      all_cats.unshift("All Categories");
+      let select_elements = `<select name="category-select" id="category-select" class="${mode}">`;
+      for (let cat of all_cats)
+        select_elements += `<option value="${cat}">${cat}</option>`;
+      select_elements += `</select><br>`
+      select_elements += `<button onclick="edit_working_queue()" class="${mode}">Apply</button>`;
+
+      // Add elements into the DOM
+      document.getElementById("category-error").innerHTML = tick_elements + select_elements;
+
+      // Tick input listener
+      let tick_option_element = document.getElementById("tick-option");
+      let tick_input_field = document.getElementById("tick-input");
+
+      // Initialize the previous selection
+      let prev_tick_option = tick_option_element.value;
+
+      // Add event listener for changing the tick option
+      tick_option_element.addEventListener('change', function () {
+        // Get the current input value
+        let input_value = parseFloat(tick_input_field.value);
+
+        // Check if the input value is valid
+        if (isNaN(input_value) || input_value <= 0) {
+          // If not valid, you might want to reset the input or inform the user
+          return;
+        }
+
+        // Get the new option selected
+        let new_option = this.value;
+
+        // Only perform conversion if the selection has changed
+        if (prev_tick_option !== new_option) {
+          // Perform the conversion
+          let new_value = 1 / input_value;
+
+          // Optionally format the new value to a fixed number of decimal places
+          new_value = parseFloat(new_value);
+
+          // Update the input field with the converted value
+          tick_input_field.value = new_value;
+
+          // Update the previous selection
+          prev_tick_option = new_option;
+        }
+      });
+
+      // Helper function to generate a unique key for each player-category group
+      function getKey(run) {
+        let players = player_names(run).slice().sort(); // Get and sort player names
+        return players.join(',') + '|' + full_category(run);
+      }
+
+      // Create a map to store the earliest submission time for each group
+      let earliestSubmissionTimes = {}; // key -> earliest submission time
+
+      for (let run of queue) {
+        let key = getKey(run);
+        let submitted = new Date(run.submitted).getTime();
+        if (!(key in earliestSubmissionTimes) || submitted < earliestSubmissionTimes[key]) {
+          earliestSubmissionTimes[key] = submitted;
+        }
+      }
+
+      // Sort the queue based on the earliest submission time of each group
+      queue.sort((a, b) => {
+        let keyA = getKey(a);
+        let keyB = getKey(b);
+
+        let earliestA = earliestSubmissionTimes[keyA];
+        let earliestB = earliestSubmissionTimes[keyB];
+
+        if (earliestA !== earliestB) {
+          return earliestA - earliestB;
+        } else {
+          // If the earliest submission times are the same, compare individual submission times
+          let submittedA = new Date(a.submitted).getTime();
+          let submittedB = new Date(b.submitted).getTime();
+          return submittedA - submittedB;
+        }
+      });
+
+      edit_working_queue();
+    }
+
+    function full_category(run) {
+      let subcatvals = [];
+      for (let value of Object.values(run.values)) {
+        if (value in subcat_map)
+          subcatvals.push(subcat_map[value]);
+      }
+      let main;
+      if (run.level.data.length === 0)
+        main = run.category.data.name;
+      else {
+        main = run.level.data.name;
+        subcatvals.unshift(run.category.data.name);
+      }
+      return ((subcatvals.length > 0) ? `${main} - ${subcatvals.join(", ")}` : main);
+    }
+
+    function players(run) {
+      return run.players.data.map(get_display_name).join("<br>");
+    }
+
+    function player_names(run) {
+      let hold = [];
+      for (let player of run.players.data)
+        hold.push((player.rel == "user") ? player.names.international : player.name);
+      return hold;
+    }
+
+    function str_time(time) {
+      let milli = Math.round(time * 1000);
+      let hours = (Math.floor(milli / 3600000)).toString();
+      let minutes = (Math.floor((milli % 3600000) / 60000)).toString();
+      let seconds = (Math.floor((milli % 60000) / 1000)).toString();
+      let milliseconds = (milli % 1000).toString();
+      if (hours != "0") {
+        if (milliseconds != "0")
+          return `${hours}:${minutes.padStart(2, "0")}:${seconds.padStart(2, "0")}.${milliseconds.padStart(3, "0")}`;
+        else
+          return `${hours}:${minutes.padStart(2, "0")}:${seconds.padStart(2, "0")}`
+      } else if (minutes != "0") {
+        if (milliseconds != "0")
+          return `${minutes}:${seconds.padStart(2, "0")}.${milliseconds.padStart(3, "0")}`;
+        else
+          return `${minutes}:${seconds.padStart(2, "0")}`;
+      } else if (seconds != "0") {
+        if (milliseconds != "0")
+          return `${seconds}.${milliseconds.padStart(3, "0")}`;
+        else
+          return `0:${seconds.padStart(2, "0")}`;
+      } else
+        return `0.${milliseconds.padStart(3, "0")}`;
+    }
+
+    function validate_time(time, tick_interval) {
+      let milli = Math.round(time * 1000);
+      return (milli % (tick_interval * 1000)).toFixed(3) == 0;
+    }
+
+    function format_time(run, tick_interval) {
+      let times = run.times;
+      let is_igt = (times.primary_t === times.realtime_noloads_t || times.primary_t === times.ingame_t);
+      let is_valid = is_igt ? validate_time(times.primary_t, tick_interval) : true;
+      let format = str_time(run.times.primary_t);
+      if (!is_valid) {
+        format = `<font color="red">` + format + `</font>`;
+      }
+      return format;
+    }
+
+    function submitted_date(run) {
+      return run.submitted
+        ? new Date(run.submitted).toISOString().split('T')[0]
+        : "N/A";
+    }
+
+    function edit_working_queue() {
+      selected = document.getElementById("category-select").value;
+      tick_interval = document.getElementById("tick-input").value;
+      tick_option = document.getElementById("tick-option").value;
+
+      if (tick_option == "tickrate") {
+        tick_interval = 1 / tick_interval;
+      }
+
+      let title;
+      if (selected == "All Categories") {
+        working_queue = [...Array(queue.length).keys()];
+        title = `<b>${gameName}\n${working_queue.length} run${(working_queue.length != 1) ? "s" : ""}`;
+      } else {
+        if (selected == "Full Game") {
+          working_queue = queue
+            .map((run, index) => (run.level.data.length === 0 ? index : null))
+            .filter(index => index !== null);
+        } else if (selected == "Individual Levels") {
+          working_queue = queue
+            .map((run, index) => (run.level.data.length !== 0 ? index : null))
+            .filter(index => index !== null);
+        } else {
+          working_queue = [];
+          let i = 0;
+          for (let run of queue) {
+            if (full_category(run) == selected)
+              working_queue.push(i);
+            i++;
+          }
+        }
+        title = `<b>${gameName}\n${selected}\n${working_queue.length} run${(working_queue.length != 1) ? "s" : ""}`;
+      }
+      if (working_queue.length > 0) {
+        let total = 0;
+        for (let i of working_queue)
+          total += queue[i].times.primary_t;
+        title += `\nTotal time ${str_time(total)}, average ${str_time(total / working_queue.length)}`;
+      }
+      title += "</b>";
+      let output = "";
+      for (let i of working_queue) {
+        let run = queue[i];
+        output += `<tr><td style="text-align:center">${full_category(run)}</td><td></td>` +
+          `<td style="text-align:center">${players(run)}</td><td></td>` +
+          `<td style="text-align:center">${format_time(run, tick_interval)}</td><td></td>` +
+          `<td style="text-align:center">${submitted_date(run)}</td><td></td>` +
+          `<td style="text-align:center"><a href="${run.weblink.replace("http://", "https://")}" target="_blank" class="external">Open</a></td><td></td>`;
+      }
+      document.getElementById("game-title").innerHTML = title;
+      document.getElementById("queue-table").innerHTML = output;
+    }
+
+    const COLOR_MAP = {
+      "#EE2222": "#E44141",  // red
+      "#E77471": "#C86462",  // coral
+      "#EF8239": "#D37339",  // orange
+      "#DAA520": "#B4902E",  // yellow
+      "#7AB941": "#70A342",  // green
+      "#009856": "#08AB6E",  // mint
+      "#249BCE": "#389BC6",  // azure
+      "#4646CE": "#6666EE",  // blue
+      "#900090": "#A010A0",  // purple
+      "#A259C5": "#AE6CCD",  // lavender
+      "#E762B5": "#C75C9F",  // pink
+      "#EF2081": "#EE2D88",  // fuchsia
+      "#FFB3F3": "#AF7BA7",  // light pink
+      "#808080": "#999999",  // silver
+      "#000000": "#999999"
+    }; // white
+
+    function hex(num) {
+      return Math.round(Math.max(0, Math.min(255, num))).toString(16);
+    }
+
+    function splitRGB(rgb) {
+      return rgb.match(/.{1,2}/g).map(x => parseInt(x, 16));
+    }
+
+    function joinRGB(rgb) {
+      return rgb.map(x => hex(x).padStart(2, "0")).join("");
+    }
+
+    function gradient(start, end, len) {
+      let colors = [];
+      let splitStart = splitRGB(start);
+      let splitEnd = splitRGB(end);
+      for (let i = 0; i < len; i++) {
+        let weight = (len == 1) ? 0 : (i / (len - 1));
+        colors.push(joinRGB(splitStart.map((e, i) => (e * (1 - weight) + splitEnd[i] * weight))));
+      }
+      return colors;
+    }
+
+    function escape(str) {
+      if (str === null)
+        return "null";
+      else if (str === undefined)
+        return "undefined";
+      else
+        return str.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+    }
+
+    function get_display_name(user, flag = true, link = false) {
+      if (!("rel" in user) || user.rel == "user") {
+        let name_style = user["name-style"];
+        let user_name = user.names.international;
+        let user_loc = user.location;
+        if (name_style.style == "gradient") {
+          let startL = name_style["color-from"].light;
+          let endL = name_style["color-to"].light;
+          let startD = name_style["color-from"].dark;
+          let endD = name_style["color-to"].dark;
+          let name_gradientL = gradient((startL in COLOR_MAP ? COLOR_MAP[startL] : startL).slice(1),
+            (endL in COLOR_MAP ? COLOR_MAP[endL] : endL).slice(1), user_name.length);
+          let name_gradientD = gradient(startD.slice(1), endD.slice(1), user_name.length);
+          var display_name = `<span class="xlight ${mode}">` +
+            name_gradientL.map((c, i) => `<span style="color:#${c}">${escape(user_name[i])}</span>`).join("") +
+            `</span>` +
+            `<span class="xdark ${mode}">` +
+            name_gradientD.map((c, i) => `<span style="color:#${c}">${escape(user_name[i])}</span>`).join("") +
+            `</span>`;
+        } else if (name_style.style == "solid") {
+          let colorL = name_style.color.light;
+          let colorD = name_style.color.dark;
+          var display_name = `<span style="color:${colorL in COLOR_MAP ? COLOR_MAP[colorL] : colorL}" class="xlight ${mode}">` +
+            escape(user_name) +
+            `</span>` +
+            `<span style="color:${colorD}" class="xdark ${mode}">` +
+            escape(user_name) +
+            `</span>`;
+        } else {
+          var display_name = `<span>${escape(user_name)}</span>`;
+        }
+        display_name = `<b>${display_name}</b>`;
+        if ((user_loc !== null) && ("country" in user_loc)) {
+          let cc = user_loc.country.code;
+          display_name = `<span style="white-space:nowrap">` +
+            `<img src="https://www.speedrun.com/images/flags/${cc}.png" height="12" alt="[${cc}]"> ` +
+            display_name +
+            `</span>`;
+        }
+        return display_name;
+      } else if (user.rel == "guest") {
+        let split_name = user.name.match(/^\[(.*)\](.*)/);
+        if (split_name) {
+          let name = escape(split_name[2]);
+          return `<span style="white-space:nowrap">` +
+            `<img src="https://www.speedrun.com/images/flags/${split_name[1]}.png" height="12" onerror="this.outerHTML = this.alt" ` +
+            `alt="[${split_name[1]}]"> ` +
+            `${name}</span>`;
+        } else {
+          return escape(user.name);
+        }
+      } else if ("name" in user) {
+        return escape(user.name);
+      } else {
+        return "?";
+      }
+    }
+
+    function detect_system_color_scheme() {
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        dark();
+      } else {
+        light();
+      }
+    }
+  </script>
+</head>
+
+<body style="font-family:sans-serif" class="light" , onload="detect_system_color_scheme()">
+  <h1 style="text-align:center">QueueClient</h1>
+  <div id="header" style="text-align:center">
+    <span class="xlight light"><button class="link" onclick="dark()">Dark Mode</button></span>
+    <span class="xdark light"><button class="link" onclick="light()">Light Mode</button></span> &bull;
+    <a href="https://github.com/evanlin96069/evanlin96069.github.io/tree/main/queue-client" target="_blank" class="external">GitHub</a>
+  </div>
+  <div id="prompt" style="text-align:center">
+    <p>Enter the abbreviation for the game you wish to fetch the queue of:</p>
+    <p>
+      <input type="text" name="abbreviation" id="abbreviation" value="portal" class="light" size="30" />
+      <button onclick="get_queue()" class="light">Fetch Queue</button>
+    </p>
+  </div>
+  <div id="pre-table" style="text-align:center">
+    <p id="category-error"></p>
+    <p style="white-space:pre" id="game-title"></p>
+  </div>
+  <table id="queue-table" style="margin-left:auto;margin-right:auto"></table>
+</body>
+
+</html>
