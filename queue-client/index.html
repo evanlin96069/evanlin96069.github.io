@@ -402,14 +402,6 @@
         return `0.${milliseconds.padStart(3, "0")}`;
     }
 
-    function validate_time(seconds, tick_interval) {
-      var num_ticks = seconds / tick_interval;
-      var rounded_ticks = Math.round(num_ticks);
-      var tick_diff = Math.abs(num_ticks - rounded_ticks);
-
-      return tick_diff < 1e-6;
-    }
-
     function format_time(run, tick_interval) {
       let time_format = str_time(run.times.primary_t);
 
@@ -418,23 +410,24 @@
       let rounded_ticks = Math.round(num_ticks);
       let tick_diff = Math.abs(num_ticks - rounded_ticks);
 
-      if (tick_diff < 1e-6) {
+      let closest_time = rounded_ticks * tick_interval;
+      let formatted_closest_time = str_time(closest_time);
+
+      if (formatted_closest_time === time_format) {
         return `
           <div title="Valid time. Ticks: ${rounded_ticks}">
             ${time_format}
           </div>
         `;
-      }
-
-      let closest_time = rounded_ticks * tick_interval;
-      let formatted_closest_time = str_time(closest_time);
-      return `
+      } else {
+        return `
         <div title="Invalid time. Closest valid time: ${formatted_closest_time} (${rounded_ticks} ticks)">
           <font color="red">
             ${time_format}
           </font>
         </div>
       `;
+      }
     }
 
     function submitted_date(run) {
