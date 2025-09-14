@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Source Command Diff Viewer</title>
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <header>
+    <div class="container">
+      <h1>Source Command Diff Viewer</h1>
+      <div class="controls" id="controls">
+        <div>
+          <label>Left build</label>
+          <select id="leftSelect"></select>
+        </div>
+        <div>
+          <label>Right build</label>
+          <select id="rightSelect"></select>
+        </div>
+        <div>
+          <label>View</label>
+          <div class="seg" role="tablist" aria-label="View mode">
+            <button data-view="changed" class="active" title="Only commands with any changed field">Changed</button>
+            <button data-view="added" title="Commands that exist only in the right build">Added</button>
+            <button data-view="removed" title="Commands that exist only in the left build">Removed</button>
+            <button data-view="all" title="All commands in both builds (unchanged included)">All</button>
+          </div>
+        </div>
+        <div>
+          <label>Search (name or help)</label>
+          <input id="search" type="search" placeholder="e.g. noclip, sensitivity, fps_max…" />
+        </div>
+      </div>
+      <div class="chips" id="metaChips"></div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="summary" id="summary"></div>
+    <div class="list" id="list"></div>
+    <div class="footer">
+      <span>Tip: Click “History” on any row to see the value across all builds.</span>
+      <span class="count" id="count"></span>
+    </div>
+  </main>
+
+  <dialog id="historyDialog">
+    <div class="modal-head">
+      <strong id="histTitle">History</strong>
+      <button class="btn" id="closeHist">Close</button>
+    </div>
+    <div class="modal-body">
+      <div class="chips" id="histChips"></div>
+      <div style="overflow:auto; margin-top:10px;">
+        <table id="histTable"></table>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
