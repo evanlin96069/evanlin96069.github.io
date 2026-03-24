@@ -382,6 +382,18 @@ function submitted_date(run) {
       `;
 }
 
+function run_warnings(run, has_proof) {
+	let warnings = "";
+	if (run.submitted) {
+		let days_waiting = (Date.now() - new Date(run.submitted).getTime()) / 86400000;
+		if (days_waiting > 21)
+			warnings += `<span title="This run has been waiting for more than 21 days.">⏳</span>`;
+	}
+	if (!has_proof)
+		warnings += `<span title="This run might not have any proof.">⚠️</span>`;
+	return warnings;
+}
+
 function edit_working_queue() {
 	selected = document.getElementById("category-select").value;
 	tick_interval = document.getElementById("tick-input").value;
@@ -436,10 +448,8 @@ function edit_working_queue() {
 		output += `<td style="text-align:center">${players(run)}</td><td></td>`;
 		output += `<td style="text-align:center">${format_time(run, tick_interval)}</td><td></td>`;
 		output += `<td style="text-align:center">${submitted_date(run)}</td><td></td>`;
+		output += `<td style="text-align:center">${run_warnings(run, has_proof)}</td><td></td>`;
 		output += `<td style="text-align:center">`;
-		if (!has_proof) {
-			output += `<span title="This run might not have any proof.">⚠️</span>`;
-		}
 		output += `<a href="${run.weblink.replace("http://", "https://")}" target="_blank" class="external">Open</a>`;
 		output += `</td><td></td>`;
 	}
