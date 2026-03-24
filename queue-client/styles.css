@@ -1,0 +1,50 @@
+body.light {
+	background: white;
+	color: black
+}
+
+body.dark {
+	background: #222;
+	color: #e6e6e6
+}
+
+button.dark,
+input.dark,
+select.dark {
+	background: #3b3b3b;
+	color: #e6e6e6
+}
+
+button.dark,
+input.dark {
+	border-width: 1px
+}
+
+.xlight.dark,
+.xdark.light {
+	display: none
+}
+
+a:link {
+	color: #08e
+}
+
+a:visited {
+	color: #af69ef
+}
+
+.external:after {
+	content: url(https://upload.wikimedia.org/wikipedia/commons/4/44/Icon_External_Link.svg);
+	margin: 0 0 0 3px
+}
+
+button.link {
+	background: none !important;
+	border: none !important;
+	padding: 0 !important;
+	font-family: sans-serif;
+	font-size: medium;
+	color: #08e !important;
+	text-decoration: underline;
+	cursor: pointer
+}
