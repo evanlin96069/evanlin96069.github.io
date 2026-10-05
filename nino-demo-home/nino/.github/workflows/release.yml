@@ -1,0 +1,89 @@
+name: Release Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release-linux-x86_64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake gcc
+      - name: Create Build Directory
+        run: mkdir build
+      - name: Configure CMake
+        run: cmake -DCMAKE_BUILD_TYPE=Release ..
+        working-directory: ./build
+      - name: Build
+        run: cmake --build .
+        working-directory: ./build
+      - name: Upload Linux x86_64 Binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: nino-x86_64-linux
+          path: build/nino
+
+  release-linux-x86:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake gcc gcc-multilib
+      - name: Create Build Directory
+        run: mkdir build
+      - name: Configure CMake
+        run: cmake -DCMAKE_BUILD_TYPE=Release "-DCMAKE_C_FLAGS=-m32" ..
+        working-directory: ./build
+      - name: Build
+        run: cmake --build .
+        working-directory: ./build
+      - name: Upload Linux x86 Binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: nino-x86-linux
+          path: build/nino
+
+  release-linux-aarch64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake gcc gcc-aarch64-linux-gnu
+      - name: Generate bundle.h (native bundler)
+        run: |
+          mkdir build-host
+          cmake -B build-host
+          cmake --build build-host --target bundler
+          ./build-host/bundler resources/bundle.h resources/syntax/*.json
+      - name: Create Build Directory
+        run: mkdir build
+      - name: Configure CMake
+        run: cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=aarch64 ..
+        working-directory: ./build
+      - name: Build
+        run: cmake --build .
+        working-directory: ./build
+      - name: Upload Linux aarch64 Binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: nino-aarch64-linux
+          path: build/nino
+
+  release-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Create Build Directory
+        run: mkdir build
+      - name: Configure CMake
+        run: cmake ..
+        working-directory: ./build
+      - name: Build
+        run: cmake --build . --config Release
+        working-directory: ./build
+      - name: Upload Windows Binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: nino-x86_64-windows
+          path: build/Release/nino.exe

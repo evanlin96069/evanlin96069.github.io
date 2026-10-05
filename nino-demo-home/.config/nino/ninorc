@@ -1,0 +1,7 @@
+autoindent 1
+ex_default_width 30
+
+# toggle autoindent
+alias tai "noai"
+alias ai "autoindent 1; alias tai noai; echo autoindent on;"
+alias noai "autoindent 0; alias tai ai; echo autoindent off;"
