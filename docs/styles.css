@@ -1,0 +1,74 @@
+body {
+    max-width: 760px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    color: #000;
+    background: #fff;
+    font-family: "Helvetica Neue", "Nimbus Sans", Helvetica, Arial, sans;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+header {
+    min-height: 160px;
+}
+
+header img {
+    float: left;
+    width: 150px;
+    height: 150px;
+    margin: 0 1.5rem 1rem 0;
+    border: 1px solid #777;
+    object-fit: cover;
+}
+
+h1,
+h2 {
+    font-family: "Helvetica Neue", "Nimbus Sans", Helvetica, Arial, sans;
+}
+
+h1 {
+    margin-top: 0;
+    padding-top: 0.25rem;
+}
+
+h2 {
+    margin-top: 1.75rem;
+    border-bottom: 1px solid #999;
+    padding-bottom: 0.2rem;
+}
+
+.contact-links {
+    padding: 0;
+    list-style: none;
+}
+
+.contact-links li {
+    display: inline;
+}
+
+.contact-links li+li::before {
+    content: " | ";
+}
+
+.projects,
+.tools {
+    padding-left: 1.25rem;
+}
+
+.projects li,
+.tools li {
+    margin-bottom: 0.65rem;
+}
+
+@media (max-width: 480px) {
+    body {
+        margin-top: 1rem;
+    }
+
+    header img {
+        width: 112px;
+        height: 112px;
+        margin-right: 1rem;
+    }
+}
