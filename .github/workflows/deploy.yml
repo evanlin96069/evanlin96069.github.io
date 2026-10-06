@@ -1,0 +1,66 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: mymindstorm/setup-emsdk@v14
+
+      - name: Assemble demo home
+        run: |
+          home="$RUNNER_TEMP/demo-home"
+          mkdir -p "$home/nino"
+          cp -r nino-demo/home/. "$home/"
+          # Tracked text files only (no images or other binary assets)
+          git -C nino ls-files -z | while IFS= read -r -d '' f; do
+            case "$f" in
+              *.png|*.jpg|*.jpeg|*.gif|*.ico|*.svg|*.webp) continue ;;
+            esac
+            mkdir -p "$home/nino/$(dirname "$f")"
+            cp "nino/$f" "$home/nino/$f"
+          done
+          cp nino-demo/README.md "$home/nino/README.md"
+          echo "DEMO_HOME=$home" >> "$GITHUB_ENV"
+
+      - name: Build web demo
+        working-directory: nino
+        run: scripts/build-web.sh "$DEMO_HOME" nino
+
+      - name: Assemble site
+        run: |
+          cp -r web "$RUNNER_TEMP/site"
+          mkdir -p "$RUNNER_TEMP/site/nino-editor"
+          cp nino/dist/web/* "$RUNNER_TEMP/site/nino-editor/"
+          echo "SITE=$RUNNER_TEMP/site" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ env.SITE }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
